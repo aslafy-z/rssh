@@ -1,9 +1,9 @@
 package api
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 )
@@ -41,8 +41,7 @@ func (api *APIDispatcher) AuthHandler(ctx *fasthttp.RequestCtx) {
 		AgentID: string(token),
 	}
 	if err := req.Validate(); err != nil {
-		ctx.SetStatusCode(fasthttp.StatusBadRequest)
-		fmt.Fprint(ctx, err.Error())
+		failRequest(ctx, err.Error(), 400)
 		return
 	}
 	log.Debug().
@@ -50,22 +49,9 @@ func (api *APIDispatcher) AuthHandler(ctx *fasthttp.RequestCtx) {
 		Msg("Auth request parsed")
 
 	resp := AuthResponse{Slot: nil}
-	b, err := json.Marshal(resp)
-	if err != nil {
-		log.Error().Str("token", string(token)).Msg("Failed to marshal response: " + err.Error())
-		ctx.SetStatusCode(fasthttp.StatusInternalServerError)
-		return
-	}
-	if _, err := ctx.Write(b); err != nil {
-		log.Error().
-			Str("token", string(token)).
-			Str("response", string(b)).
-			Str("error", err.Error()).
-			Msg("Could not respond to client")
-		return
-	}
+	respond(ctx, resp)
 	log.Info().
 		Str("token", string(token)).
-		Str("response", string(b)).
+		Str("response", fmt.Sprintf("%v", resp)).
 		Msg("Agent authenticated.")
 }
