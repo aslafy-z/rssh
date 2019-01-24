@@ -23,8 +23,9 @@ type APIExecutor struct {
 }
 
 type APIDispatcher struct {
-	bindAddr string
-	bindPort uint16
+	bindAddr   string
+	bindPort   uint16
+	bindDomain string
 
 	executor *APIExecutor
 }
@@ -63,10 +64,11 @@ func NewExecutor(etcdEndpoints []string) (*APIExecutor, error) {
 	}, nil
 }
 
-func NewDispatcher(bindAddr string, bindPort uint16) (*APIDispatcher, error) {
+func NewDispatcher(bindAddr string, bindPort uint16, domain string) (*APIDispatcher, error) {
 	return &APIDispatcher{
 		bindAddr,
 		bindPort,
+		domain,
 		nil,
 	}, nil
 }
@@ -84,6 +86,7 @@ func (api *APIDispatcher) Run(executor *APIExecutor) error {
 	log.Debug().Msg("Registered handlers")
 
 	log.Info().
+		Str("domain", api.bindDomain).
 		Str("BindAddr", api.bindAddr).
 		Uint16("BindPort", api.bindPort).
 		Msg("Starting HTTP API.")

@@ -27,12 +27,10 @@ type RegisterResponse struct {
 }
 
 func respond(ctx *fasthttp.RequestCtx, v interface{}) error {
-	domain := getDomain(ctx)
 	b, err := json.Marshal(v)
 	if err != nil {
 		log.Error().
 			Str("error", err.Error()).
-			Str("domain", domain).
 			Msg("Failed to marshal response")
 		ctx.SetStatusCode(500)
 		return err
@@ -41,7 +39,6 @@ func respond(ctx *fasthttp.RequestCtx, v interface{}) error {
 	if _, err := ctx.Write(b); err != nil {
 		log.Warn().
 			Str("error", err.Error()).
-			Str("domain", domain).
 			Str("response", string(b)).
 			Msg("Could not respond to client")
 		return err

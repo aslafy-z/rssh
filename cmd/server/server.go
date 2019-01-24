@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -20,6 +21,7 @@ type apiFlags struct {
 	BindPort      uint16
 	EtcdEndpoints []string
 	Config        string
+	RootDomain    string
 }
 
 // Splits {"a,b", "c"} into {"a", "b", "c"}
@@ -39,10 +41,20 @@ func splitParts(maybeParted []string) []string {
 	return r
 }
 
+// Taken from https://www.socketloop.com/tutorials/golang-use-regular-expression-to-validate-domain-name
+func isValidDomain(d string) bool {
+	re := regexp.MustCompile(`^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z]{2,3})$`)
+	return re.MatchString(d)
+}
+
 func parseArgs(flags *apiFlags) func() {
 	return func() {
 
 		flags.BindAddr = viper.GetString("addr")
+		flags.RootDomain = viper.GetString("domain")
+		if !isValidDomain(flags.RootDomain) {
+			log.Fatal().Str("domain", flags.RootDomain).Msg("Invalid domain name.")
+		}
 		port, err := strconv.ParseUint(viper.Get("port").(string), 10, 16)
 		if err != nil {
 			log.Fatal().
@@ -101,6 +113,7 @@ func NewCommand() *cobra.Command {
 			httpAPI, err := api.NewDispatcher(
 				flags.BindAddr,
 				flags.BindPort,
+				flags.RootDomain,
 			)
 			if err != nil {
 				return err
@@ -120,6 +133,14 @@ func NewCommand() *cobra.Command {
 		"a",
 		"0.0.0.0",
 		"HTTP API bind address",
+	)
+
+	cmd.PersistentFlags().StringVarP(
+		&flags.RootDomain,
+		"domain",
+		"d",
+		"",
+		"Domain the RSSH public server will be known as.",
 	)
 
 	cmd.PersistentFlags().Uint16VarP(
