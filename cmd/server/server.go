@@ -55,7 +55,7 @@ func parseArgs(flags *apiFlags) func() {
 		if !isValidDomain(flags.RootDomain) {
 			log.Fatal().Str("domain", flags.RootDomain).Msg("Invalid domain name.")
 		}
-		port, err := strconv.ParseUint(viper.Get("port").(string), 10, 16)
+		port, err := strconv.ParseUint(viper.GetString("port"), 10, 16)
 		if err != nil {
 			log.Fatal().
 				Str("port", viper.Get("addr").(string)).
