@@ -103,12 +103,15 @@ func initConfig(flags *apiFlags) func() {
 func NewCommand() *cobra.Command {
 	flags := &apiFlags{}
 
-	cobra.OnInitialize(initConfig(flags))
-	cobra.OnInitialize(parseArgs(flags))
 	cmd := &cobra.Command{
 		Use:   "server",
 		Short: "Run the RSSH public server.",
 		Long:  `Run the RSSH public server.`,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			initConfig(flags)()
+			parseArgs(flags)()
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			httpAPI, err := api.NewDispatcher(
 				flags.BindAddr,
