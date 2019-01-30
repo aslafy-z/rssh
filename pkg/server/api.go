@@ -80,8 +80,8 @@ func (api *APIDispatcher) Run(executor *APIExecutor) error {
 	api.executor = executor
 	router := fasthttprouter.New()
 
-	router.POST("/auth", api.AuthHandler)
-	router.POST("/register/:domain", api.RegisterHandler)
+	router.POST("/auth/:domain", api.executor.ValidateAuthenticationRequest(api.AuthHandler))
+	router.POST("/register/:domain", ValidateDomainRequest(api.RegisterHandler))
 	router.GET("/connect", api.ConnectHandler())
 	log.Debug().Msg("Registered handlers")
 

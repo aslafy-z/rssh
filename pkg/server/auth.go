@@ -24,21 +24,12 @@ func (r *AuthRequest) Validate() error {
 	return nil
 }
 
-// func getIdentity(ctx *fasthttp.RequestCtx) (req *AuthRequest, err error) {
-// 	return &AuthRequest{
-// 		AgentID: ctx.UserValue("identity").(string)
-// 	}
-// }
-
-// func (api *APIExecutor) ValidateIdentity(ctx *fasthttp.RequestCtx) {
-
-// }
-
 func (api *APIDispatcher) AuthHandler(ctx *fasthttp.RequestCtx) {
-	log.Debug().Msg("Received new auth request.")
-	token := ctx.QueryArgs().Peek("token")
+	log.Debug().Str("domain", getDomain(ctx)).Msg("Received new auth request.")
+	token := getIdentity(ctx)
 	req := AuthRequest{
 		AgentID: string(token),
+		Domain:  getDomain(ctx),
 	}
 	if err := req.Validate(); err != nil {
 		failRequest(ctx, err.Error(), 400)
@@ -48,7 +39,9 @@ func (api *APIDispatcher) AuthHandler(ctx *fasthttp.RequestCtx) {
 		Str("token", string(token)).
 		Msg("Auth request parsed")
 
+	// Create an available slot for the agent to connect to.
 	resp := AuthResponse{Slot: nil}
+
 	respond(ctx, resp)
 	log.Info().
 		Str("token", string(token)).
