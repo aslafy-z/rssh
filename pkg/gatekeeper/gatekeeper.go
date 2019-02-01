@@ -7,6 +7,8 @@ import (
 
 	"github.com/gliderlabs/ssh"
 	"github.com/rs/zerolog/log"
+
+	"github.com/Xide/rssh/pkg/utils"
 )
 
 type Gate struct {
@@ -24,8 +26,8 @@ type GateKeeper struct {
 }
 
 func (g *GateKeeper) WithPortRange(low uint16, high uint16) error {
-	g.lowPort = min(low, high)
-	g.highPort = max(low, high)
+	g.lowPort = utils.Min(low, high)
+	g.highPort = utils.Max(low, high)
 	return nil
 }
 
@@ -56,8 +58,8 @@ func (g *GateKeeper) InitSSHServer() error {
 	}
 	addr := fmt.Sprintf("%s:%d", g.frontGate.Host, g.frontGate.Port)
 	server := ssh.Server{
-		Addr:                          addr,
-		Handler:                       ssh.Handler(g.proxyCommandHandler()),
+		Addr:    addr,
+		Handler: ssh.Handler(g.proxyCommandHandler()),
 		ReversePortForwardingCallback: ssh.ReversePortForwardingCallback(g.reversePortForwardHandler()),
 	}
 	g.srv = &server

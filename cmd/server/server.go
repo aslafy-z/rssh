@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -12,6 +13,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	api "github.com/Xide/rssh/pkg/server"
+	"github.com/Xide/rssh/pkg/utils"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -22,6 +24,9 @@ type apiFlags struct {
 	EtcdEndpoints []string
 	Config        string
 	RootDomain    string
+	SSHPortRange  string
+	SSHPortLow    uint16
+	SSHPortHigh   uint16
 }
 
 // Splits {"a,b", "c"} into {"a", "b", "c"}
@@ -39,6 +44,24 @@ func splitParts(maybeParted []string) []string {
 		}
 	}
 	return r
+}
+
+func parsePortRange(raw string) (uint16, uint16, error) {
+	ports := strings.Split(raw, "-")
+	if len(ports) != 2 {
+		return 0, 0, errors.New("Invalid port range format : expected two dash separated integers")
+	}
+	low, err := strconv.ParseUint(ports[0], 10, 16)
+	if err != nil {
+		return 0, 0, errors.New("first port is not a base 10 integer")
+	}
+
+	high, err := strconv.ParseUint(ports[1], 10, 16)
+	if err != nil {
+		return 0, 0, errors.New("second port is not a base 10 integer")
+	}
+
+	return utils.Min(uint16(low), uint16(high)), utils.Max(uint16(low), uint16(high)), nil
 }
 
 // Taken from https://www.socketloop.com/tutorials/golang-use-regular-expression-to-validate-domain-name
@@ -61,8 +84,18 @@ func parseArgs(flags *apiFlags) func() {
 				Str("port", viper.Get("addr").(string)).
 				Msg(fmt.Sprintf("Could not parse %s as an integer.", viper.Get("addr").(string)))
 		}
-		flags.EtcdEndpoints = splitParts(viper.GetStringSlice("etcd"))
 		flags.BindPort = uint16(port)
+
+		pRangeLow, pRangeHigh, err := parsePortRange(viper.GetString("port-range"))
+		if err != nil {
+			log.Fatal().
+				Str("error", err.Error()).
+				Msg("Could not parse SSH port range.")
+		}
+		flags.SSHPortLow = pRangeLow
+		flags.SSHPortHigh = pRangeHigh
+
+		flags.EtcdEndpoints = splitParts(viper.GetStringSlice("etcd"))
 	}
 }
 
@@ -160,6 +193,14 @@ func NewCommand() *cobra.Command {
 		"e",
 		[]string{"http://127.0.0.1:2379"},
 		"Comma separated list of the Etcd hosts to discover",
+	)
+
+	cmd.PersistentFlags().StringVarP(
+		&flags.SSHPortRange,
+		"port-range",
+		"r",
+		"31240-65535",
+		"Port range where RSSH will bind the agents listener on (format: '$min-$max')",
 	)
 
 	cmd.PersistentFlags().StringVarP(

@@ -21,16 +21,3 @@ func findAvailablePort(low uint16, high uint16) (uint16, error) {
 	}
 	return 0, errors.New("no slot available")
 }
-
-func min(x, y uint16) uint16 {
-	if x < y {
-		return x
-	}
-	return y
-}
-func max(x, y uint16) uint16 {
-	if x > y {
-		return x
-	}
-	return y
-}
